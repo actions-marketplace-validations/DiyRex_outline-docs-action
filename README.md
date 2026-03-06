@@ -16,14 +16,16 @@
 |-------|----------|---------|-------------|
 | `outline_url` | **yes** | — | Outline instance URL |
 | `api_key` | **yes** | — | Outline API key |
-| `action` | **yes** | `create` | `create`, `update`, or `find` |
-| `collection_id` | no | — | Collection ID (required for `create`) |
+| `action` | **yes** | `create` | `create`, `update`, `find`, `create_collection`, `delete_collection` |
+| `collection_id` | no | — | Collection ID (required for `create`, `delete_collection`) |
 | `document_id` | no | — | Document ID (required for `update`) |
-| `title` | no | — | Document title (required for `create`) |
+| `title` | no | — | Document title or collection name |
 | `text` | no | — | Markdown content (supports multiline) |
 | `file_path` | no | — | Path to markdown file (alternative to `text`) |
 | `publish` | no | `true` | Publish immediately or save as draft |
 | `share` | no | `false` | Create a public share link |
+| `description` | no | — | Collection description (for `create_collection`) |
+| `color` | no | — | Collection color hex (for `create_collection`) |
 
 ## Outputs
 
@@ -32,6 +34,7 @@
 | `document_id` | ID of the created/updated/found document |
 | `document_url` | URL to the document in Outline |
 | `share_url` | Public share URL (only when `share: true`) |
+| `collection_id` | ID of the created collection (for `create_collection`) |
 
 ---
 
@@ -40,7 +43,7 @@
 ### Create a document
 
 ```yaml
-- uses: DiyRex/outline-docs-action@v1
+- uses: DiyRex/outline-docs-action@v2
   with:
     outline_url: ${{ secrets.OUTLINE_URL }}
     api_key: ${{ secrets.OUTLINE_API_KEY }}
@@ -61,7 +64,7 @@
 ### Create from a markdown file
 
 ```yaml
-- uses: DiyRex/outline-docs-action@v1
+- uses: DiyRex/outline-docs-action@v2
   with:
     outline_url: ${{ secrets.OUTLINE_URL }}
     api_key: ${{ secrets.OUTLINE_API_KEY }}
@@ -75,7 +78,7 @@
 ### Update an existing document
 
 ```yaml
-- uses: DiyRex/outline-docs-action@v1
+- uses: DiyRex/outline-docs-action@v2
   with:
     outline_url: ${{ secrets.OUTLINE_URL }}
     api_key: ${{ secrets.OUTLINE_API_KEY }}
@@ -87,7 +90,7 @@
 ### Find a document by title
 
 ```yaml
-- uses: DiyRex/outline-docs-action@v1
+- uses: DiyRex/outline-docs-action@v2
   id: find
   with:
     outline_url: ${{ secrets.OUTLINE_URL }}
@@ -98,10 +101,37 @@
 - run: echo "Found: ${{ steps.find.outputs.document_url }}"
 ```
 
+### Create a collection
+
+```yaml
+- uses: DiyRex/outline-docs-action@v2
+  id: collection
+  with:
+    outline_url: ${{ secrets.OUTLINE_URL }}
+    api_key: ${{ secrets.OUTLINE_API_KEY }}
+    action: create_collection
+    title: 'Release Notes'
+    description: 'Auto-generated release documentation'
+    color: '#0366D6'
+
+- run: echo "Collection: ${{ steps.collection.outputs.collection_id }}"
+```
+
+### Delete a collection
+
+```yaml
+- uses: DiyRex/outline-docs-action@v2
+  with:
+    outline_url: ${{ secrets.OUTLINE_URL }}
+    api_key: ${{ secrets.OUTLINE_API_KEY }}
+    action: delete_collection
+    collection_id: 'your-collection-id'
+```
+
 ### Create + share + post link as PR comment
 
 ```yaml
-- uses: DiyRex/outline-docs-action@v1
+- uses: DiyRex/outline-docs-action@v2
   id: outline
   with:
     outline_url: ${{ secrets.OUTLINE_URL }}
