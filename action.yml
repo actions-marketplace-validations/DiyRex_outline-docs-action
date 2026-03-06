@@ -16,12 +16,12 @@ inputs:
     required: true
 
   action:
-    description: 'Action to perform: create, update, or find'
+    description: 'Action: create, update, find, create_collection, or delete_collection'
     required: true
     default: 'create'
 
   collection_id:
-    description: 'Collection ID (required for create)'
+    description: 'Collection ID (required for create document, delete_collection)'
     required: false
 
   document_id:
@@ -29,7 +29,7 @@ inputs:
     required: false
 
   title:
-    description: 'Document title (required for create)'
+    description: 'Document title (required for create) or collection name (for create_collection)'
     required: false
 
   text:
@@ -50,6 +50,14 @@ inputs:
     required: false
     default: 'false'
 
+  description:
+    description: 'Collection description (for create_collection)'
+    required: false
+
+  color:
+    description: 'Collection color hex (for create_collection, e.g., #0366D6)'
+    required: false
+
 outputs:
   document_id:
     description: 'ID of the created/updated document'
@@ -62,6 +70,10 @@ outputs:
   share_url:
     description: 'Public share URL (only if share=true)'
     value: ${{ steps.outline.outputs.share_url }}
+
+  collection_id:
+    description: 'ID of the created collection (for create_collection)'
+    value: ${{ steps.outline.outputs.collection_id }}
 
 runs:
   using: 'composite'
@@ -80,4 +92,6 @@ runs:
         FILE_PATH: ${{ inputs.file_path }}
         PUBLISH: ${{ inputs.publish }}
         SHARE: ${{ inputs.share }}
+        DESCRIPTION: ${{ inputs.description }}
+        COLOR: ${{ inputs.color }}
       run: bash "${{ github.action_path }}/scripts/outline.sh"

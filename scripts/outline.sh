@@ -76,8 +76,20 @@ case "${ACTION}" in
       exit 1
     fi
     ;;
+  create_collection)
+    if [[ -z "${TITLE:-}" ]]; then
+      echo "::error::title is required for create_collection action (used as collection name)"
+      exit 1
+    fi
+    ;;
+  delete_collection)
+    if [[ -z "${COLLECTION_ID:-}" ]]; then
+      echo "::error::collection_id is required for delete_collection action"
+      exit 1
+    fi
+    ;;
   *)
-    echo "::error::Invalid action: ${ACTION}. Must be create, update, or find"
+    echo "::error::Invalid action: ${ACTION}. Must be create, update, find, create_collection, or delete_collection"
     exit 1
     ;;
 esac
@@ -86,6 +98,7 @@ esac
 
 DOC_ID=""
 DOC_URL=""
+COL_ID=""
 
 case "${ACTION}" in
   create)
@@ -143,6 +156,31 @@ case "${ACTION}" in
     fi
     echo "::endgroup::"
     ;;
+
+  create_collection)
+    ESCAPED_DESC=$(echo -n "${DESCRIPTION:-}" | json_escape)
+    PAYLOAD="{\"name\":${ESCAPED_TITLE}"
+    if [[ -n "${DESCRIPTION:-}" ]]; then
+      PAYLOAD="${PAYLOAD},\"description\":${ESCAPED_DESC}"
+    fi
+    if [[ -n "${COLOR:-}" ]]; then
+      PAYLOAD="${PAYLOAD},\"color\":\"${COLOR}\""
+    fi
+    PAYLOAD="${PAYLOAD}}"
+
+    echo "::group::Creating collection"
+    RESPONSE=$(api_call "collections.create" "$PAYLOAD")
+    COL_ID=$(echo "$RESPONSE" | jq -r '.data.id')
+    echo "Collection created: ${COL_ID}"
+    echo "::endgroup::"
+    ;;
+
+  delete_collection)
+    echo "::group::Deleting collection"
+    api_call "collections.delete" "{\"id\":\"${COLLECTION_ID}\"}" > /dev/null
+    echo "Collection deleted: ${COLLECTION_ID}"
+    echo "::endgroup::"
+    ;;
 esac
 
 # ─── Share link ────────────────────────────────────────────────────────────────
@@ -153,7 +191,6 @@ if [[ "${SHARE:-false}" == "true" && -n "$DOC_ID" ]]; then
   SHARE_RESPONSE=$(api_call "shares.create" "{\"documentId\":\"${DOC_ID}\"}")
   SHARE_URL=$(echo "$SHARE_RESPONSE" | jq -r '.data.url // empty')
   if [[ -z "$SHARE_URL" ]]; then
-    # Some Outline versions return the share differently
     SHARE_ID=$(echo "$SHARE_RESPONSE" | jq -r '.data.id // empty')
     if [[ -n "$SHARE_ID" ]]; then
       SHARE_URL="${OUTLINE_URL}/share/${SHARE_ID}"
@@ -168,6 +205,7 @@ fi
 echo "document_id=${DOC_ID}" >> "$GITHUB_OUTPUT"
 echo "document_url=${DOC_URL}" >> "$GITHUB_OUTPUT"
 echo "share_url=${SHARE_URL}" >> "$GITHUB_OUTPUT"
+echo "collection_id=${COL_ID}" >> "$GITHUB_OUTPUT"
 
 # ─── Step summary ─────────────────────────────────────────────────────────────
 
@@ -177,6 +215,9 @@ echo "share_url=${SHARE_URL}" >> "$GITHUB_OUTPUT"
   echo "| Field | Value |"
   echo "|-------|-------|"
   echo "| Action | \`${ACTION}\` |"
+  if [[ -n "$COL_ID" ]]; then
+    echo "| Collection ID | \`${COL_ID}\` |"
+  fi
   if [[ -n "$DOC_ID" ]]; then
     echo "| Document ID | \`${DOC_ID}\` |"
     echo "| Document URL | [Open in Outline](${DOC_URL}) |"
